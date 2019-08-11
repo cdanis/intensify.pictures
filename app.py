@@ -17,9 +17,14 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 OUTPUT_FOLDER = './intensified'
 
+# TODO: investigate why embedding in Discord via URL doesn't animate.
 
+
+# TODO: make the canonical URLs end in .gif (maybe 301 to there?)
 @app.route('/i/<ident>')
 def image(ident):
+    if not ident.endswith('.gif'):
+        ident = ident + '.gif'
     return send_from_directory(OUTPUT_FOLDER, ident, as_attachment=False, mimetype='image/gif')
 
 
@@ -64,7 +69,7 @@ def upload():
     file = request.files['files[]']
     rando = _random_id()
     uploaded_image = os.path.join(UPLOAD_FOLDER, f'{rando}-{secure_filename(file.filename)}')
-    intensified_image = os.path.join(OUTPUT_FOLDER, rando)
+    intensified_image = os.path.join(OUTPUT_FOLDER, rando) + '.gif'
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
         # TODO check if we got a gif already
@@ -74,9 +79,7 @@ def upload():
         if img.width > 500:
             convert_cmd.extend(['-resize', '500'])
         convert_cmd.append('gif:-')
-        convert = subprocess.Popen(
-            convert_cmd, stdout=subprocess.PIPE
-        )
+        convert = subprocess.Popen(convert_cmd, stdout=subprocess.PIPE)
         # Exploding a single frame file DTRT.
         explode = subprocess.Popen(
             ['/usr/bin/gifsicle', '--explode', '-', '-o', os.path.join(tmpdir, "explo")],
@@ -86,7 +89,7 @@ def upload():
         frames = sorted(glob.glob(os.path.join(tmpdir, "explo.*")))
 
         subprocess.run(_generate_gifsicle_command(frames, intensified_image))
-    return jsonify({'result': url_for('image', ident=rando)})
+    return jsonify({'result': url_for('image', ident=f'{rando}.gif')})
 
 
 @app.route('/')
