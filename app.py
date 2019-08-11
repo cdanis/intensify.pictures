@@ -81,7 +81,14 @@ def upload():
         convert = subprocess.Popen(convert_cmd, stdout=subprocess.PIPE)
         # Exploding a single frame file DTRT.
         explode = subprocess.Popen(
-            ['/usr/bin/gifsicle', '--explode', '-', '-o', os.path.join(tmpdir, "explo")],
+            [
+                '/usr/bin/gifsicle',
+                '--unoptimize',
+                '--explode',
+                '-',
+                '-o',
+                os.path.join(tmpdir, "explo"),
+            ],
             stdin=convert.stdout,
         )
         explode.communicate()
