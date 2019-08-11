@@ -22,6 +22,13 @@ def image(ident):
     return send_from_directory(OUTPUT_FOLDER, ident, as_attachment=False, mimetype='image/gif')
 
 
+def _generate_crops(num_frames, input_fnames, *, max_offset=10):
+    for fname in itertools.islice(itertools.cycle(input_fnames), num_frames):
+        x = random.randint(0, max_offset)
+        y = random.randint(0, max_offset)
+        yield from ['--crop', f'{x},{y}+-{max_offset-x}x-{max_offset-y}', fname]
+
+
 def _generate_gifsicle_command(input_fnames, output_fname, *, max_offset=10):
     # TODO: side-shaving will not be appropriate for all images.  need modes.
     # TODO: this doesn't quite work on animated gifs.  it doesn't preserve frame delay,
@@ -35,20 +42,10 @@ def _generate_gifsicle_command(input_fnames, output_fname, *, max_offset=10):
         if num_input_frames >= 10
         else num_input_frames * math.ceil(10 / num_input_frames)
     )
-    coords = [
-        (random.randint(0, max_offset), random.randint(0, max_offset)) for _ in range(num_frames)
-    ]
-    return (
-        ['/usr/bin/gifsicle', '--no-logical-screen', '--disposal=bg', '-lforever', '-d5']
-        + list(
-            itertools.chain(
-                *[
-                    ['--crop', f'{x},{y}+-{max_offset-x}x-{max_offset-y}', fname]
-                    for ((x, y), fname) in zip(coords, itertools.cycle(input_fnames))
-                ]
-            )
-        )
-        + ['-O3', '-o', output_fname]
+    return itertools.chain(
+        ['/usr/bin/gifsicle', '--no-logical-screen', '--disposal=bg', '-lforever', '-d5'],
+        _generate_crops(num_frames, input_fnames, max_offset=max_offset),
+        ['-O3', '-o', output_fname],
     )
 
 
