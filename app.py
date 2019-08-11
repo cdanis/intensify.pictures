@@ -17,8 +17,6 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 OUTPUT_FOLDER = './intensified'
 
-# TODO: investigate why embedding in Discord via URL doesn't animate.
-
 
 # TODO: make the canonical URLs end in .gif (maybe 301 to there?)
 @app.route('/i/<ident>')
@@ -73,7 +71,8 @@ def upload():
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
         # TODO check if we got a gif already
-        # TODO do we want to have a maximum resolution?  (and then downscale?)
+        # TODO do we want to have a proper maximum resolution?  (and then downscale?)
+        # the width limit is not super robust.
         img = Image.open(uploaded_image)
         convert_cmd = ['/usr/bin/convert', uploaded_image]
         if img.width > 500:
