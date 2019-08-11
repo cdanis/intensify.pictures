@@ -2,6 +2,7 @@
 
 from flask import Flask, render_template, url_for, request, jsonify, abort, send_from_directory
 from werkzeug.utils import secure_filename
+from PIL import Image
 import glob
 import itertools
 import math
@@ -68,8 +69,13 @@ def upload():
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
         # TODO check if we got a gif already
         # TODO do we want to have a maximum resolution?  (and then downscale?)
+        img = Image.open(uploaded_image)
+        convert_cmd = ['/usr/bin/convert', uploaded_image]
+        if img.width > 500:
+            convert_cmd.extend(['-resize', '500'])
+        convert_cmd.append('gif:-')
         convert = subprocess.Popen(
-            ['/usr/bin/convert', uploaded_image, 'gif:-'], stdout=subprocess.PIPE
+            convert_cmd, stdout=subprocess.PIPE
         )
         # Exploding a single frame file DTRT.
         explode = subprocess.Popen(
