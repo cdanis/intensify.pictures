@@ -74,27 +74,41 @@ def upload():
         # TODO do we want to have a proper maximum resolution?  (and then downscale?)
         # the width limit is not super robust.
         img = Image.open(uploaded_image)
-        convert_cmd = ['/usr/bin/convert', uploaded_image]
-        if img.width > 500:
-            convert_cmd.extend(['-resize', '500'])
-        convert_cmd.append('gif:-')
-        convert = subprocess.Popen(convert_cmd, stdout=subprocess.PIPE)
-        # Exploding a single frame file DTRT.
-        explode = subprocess.Popen(
-            [
-                '/usr/bin/gifsicle',
-                '--unoptimize',
-                '--explode',
-                '-',
+        # Hand-crafted artisinal integer carefully selected to be 500px
+        # after side-shaving intensification.
+        MAX_DIMENSION = 510
+        new_size = None
+        if max(img.size) > MAX_DIMENSION:
+            ratio = MAX_DIMENSION / max(img.size)
+            new_size = tuple(math.floor(i * ratio) for i in img.size)
+        # If we're dealing with a GIF input, don't do anything with it in Pillow.
+        # Its API is pretty annoying to work with when dealing with animated GIFs;
+        # you have to apply the transformations you want to each frame, and then pass
+        # through a bunch of metadata from img.info into img.save().
+        converted_to_gif_image = None
+        if img.format != 'GIF':
+            converted_to_gif_image = os.path.join(tmpdir, 'convertedtoa.gif')
+            if new_size is not None:
+                img = img.resize(new_size, resample=Image.LANCZOS)
+                new_size = None
+            img.save(converted_to_gif_image)
+        # Asking gifsicle to explode a single frame image DTRT.
+        subprocess.run(
+            ['/usr/bin/gifsicle', '--unoptimize', '--explode']
+            + (
+                ['--resize', f'{new_size[0]}x{new_size[1]}', '--resize-method', 'lanczos3']
+                if new_size is not None
+                else []
+            )
+            + [
+                (uploaded_image if converted_to_gif_image is None else converted_to_gif_image),
                 '-o',
                 os.path.join(tmpdir, "explo"),
-            ],
-            stdin=convert.stdout,
+            ]
         )
-        explode.communicate()
         frames = sorted(glob.glob(os.path.join(tmpdir, "explo.*")))
-
         subprocess.run(_generate_gifsicle_command(frames, intensified_image))
+
     return jsonify({'result': url_for('image', ident=f'{rando}.gif')})
 
 
