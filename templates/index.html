@@ -28,7 +28,9 @@
             uppy.use(Uppy.DragDrop, { target: '#drag-drop-area' })
             //uppy.use(Uppy.Tus, { endpoint: 'https://master.tus.io/files/' })
             uppy.use(Uppy.XHRUpload, {
-                endpoint: '{{ endpoint }}'
+                endpoint: '{{ endpoint }}',
+                timeout: 90 * 1000,
+                limit: 1,
             })
             uppy.on('complete', (result) => {
                 console.log(result);
