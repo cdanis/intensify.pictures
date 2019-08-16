@@ -1,0 +1,137 @@
+---
+- hosts: all
+  remote_user: root
+  tasks:
+  - name: ensure deps installed
+    apt:
+      name: "{{ packages }}"
+    vars:
+      packages:
+        - python3-gunicorn
+        - python3-flask
+        - python3-pil
+        - gifsicle
+        - nginx
+        - zsh
+        - unattended-upgrades
+        - git
+#  - name: enable systemd persistent journal
+#    file: path=/var/log/journal state=directory
+
+# TODO set up some firewall rules, steal from nolan
+  - name: ensure user exists
+    user:
+      name: intensify
+      password: '!'
+      shell: /usr/bin/zsh
+  - name: ensure clone
+    git:
+      dest: /home/intensify/intensify.pictures
+      repo: https://github.com/cdanis/intensify.pictures.git
+  - name: create tmpfiles.d snippet
+    copy:
+      dest: /etc/tmpfiles.d/intensify.conf
+      mode: 0644
+      content: 'd	/run/intensify	0755	intensify	intensify	-'
+  - name: update tmpfiles
+    command: systemd-tmpfiles --create /etc/tmpfiles.d/intensify.conf
+  - name: create socket systemd unit
+    copy:
+      dest: /etc/systemd/system/intensify.socket
+      content: |
+        [Unit]
+        description=gunicorn socket
+
+        [Socket]
+        ListenStream=/run/intensify/socket
+
+        [Install]
+        WantedBy=intensify.service
+  - name: create systemd service
+    copy:
+      dest: /etc/systemd/system/intensify.service
+      content: |
+        [Unit]
+        Description=gunicorn daemon for intensify.pictures
+        Requires=intensify.socket
+        After=network.target
+
+        [Service]
+        PIDFile=/run/intensify/pid
+        User=intensify
+        Group=intensify
+        WorkingDirectory=/home/intensify/intensify.pictures
+        ExecStart=/usr/bin/gunicorn3 --pid /run/intensify/pid --bind unix:/run/intensify/socket -w 8 app:app
+        ExecReload=/bin/kill -s HUP $MAINPID
+        ExecStop=/bin/kill -s TERM $MAINPID
+        PrivateTmp=true
+
+        [Install]
+        WantedBy=multi-user.target
+  - name: enable socket
+    systemd:
+      name: intensify.socket
+      daemon_reload: yes
+      enabled: yes
+      state: started
+  - name: ensure certs directories
+    file:
+      path: /etc/certs
+      state: directory
+      mode: 0700
+  - name: ensure certs directories
+    file:
+      path: /etc/certs/intensify.pictures
+      state: directory
+      mode: 0700
+  - name: nginx SSL params snippet
+    copy:
+      dest: /etc/nginx/snippets/ssl.conf
+      content: |
+        ssl_dhparam /etc/nginx/dhparams4096.pem;
+        ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+        ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0
+        ssl_session_timeout 10m;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_tickets off; # Requires nginx >= 1.5.9
+        ssl_stapling on; # Requires nginx >= 1.3.7
+        ssl_stapling_verify on; # Requires nginx => 1.3.7
+        resolver 1.1.1.1 8.8.8.8 valid=300s;
+        resolver_timeout 5s;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+  - name: nginx intensify site snippet
+    copy:
+      dest: /etc/nginx/sites-available/intensify
+      content: |
+        upstream intensify_app_server {
+          server unix:/run/intensify/socket fail_timeout=0;
+        }
+        server {
+          listen 80;
+          listen [::]:80;
+          server_name intensify.pictures;
+          return 301 https://intensify.pictures$request_url;
+        }
+        server {
+          listen 443 ssl;
+          listen [::]:443 ssl;
+          server_name intensify.pictures;
+          ssl_certificate /etc/certs/intensify.pictures/fullchain.pem;
+          ssl_certificate_key /etc/certs/intensify.pictures/privkey.pem;
+          include snippets/ssl.conf;
+          access_log /var/log/nginx/intensify.access.log;
+          error_log /var/log/nginx/intensify.error.log;
+          client_max_body_size 17M;
+          location / {
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host $http_host;
+            proxy_redirect off;
+            proxy_pass http://intensify_app_server;
+          }
+        }
+# TODO reload nginx
+
+
+# TODO I think we temporarily set up acme.sh, and then post-migration, think about moving to certbot and encoding its config here...?
+# that lets us get away from worrying about DNS challenge + keeping API keys on an untrusted host
