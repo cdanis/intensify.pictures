@@ -110,7 +110,7 @@
           listen 80;
           listen [::]:80;
           server_name intensify.pictures;
-          return 301 https://intensify.pictures$request_url;
+          return 301 https://intensify.pictures$request_uri;
         }
         server {
           listen 443 ssl;
@@ -130,6 +130,11 @@
             proxy_pass http://intensify_app_server;
           }
         }
+  - name: enable nginx site
+    file:
+      state: link
+      path: /etc/nginx/sites-enabled/intensify
+      src: ../sites-available/intensify
 # TODO reload nginx
 
 
