@@ -109,13 +109,13 @@
         server {
           listen 80;
           listen [::]:80;
-          server_name intensify.pictures;
+          server_name intensify.pictures www.intensify.pictures;
           return 301 https://intensify.pictures$request_uri;
         }
         server {
           listen 443 ssl;
           listen [::]:443 ssl;
-          server_name intensify.pictures;
+          server_name intensify.pictures www.intensify.pictures;
           ssl_certificate /etc/certs/intensify.pictures/fullchain.pem;
           ssl_certificate_key /etc/certs/intensify.pictures/privkey.pem;
           include snippets/ssl.conf;
