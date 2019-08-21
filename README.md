@@ -8,7 +8,7 @@ Hacking
 =======
 
 Presently there's no setup.py or tests because I'm lazy.
-Right now the only supported environment is Debian Buster.
+Right now the only supported environment is Debian Buster (but most recent Linuxes should work).
 
 To hack, first install prereqs: `sudo apt install python3-flask python3-pil gifsicle`
 
