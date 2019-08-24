@@ -65,6 +65,28 @@ def _convert_to_gif(img, output, *, new_size=None):
         mask = Image.eval(alpha, lambda a: 255 if a <= 128 else 0)
         img.paste(255, mask)
         transparency_color = 255
+    # If there's an EXIF tag, rotate the image per the given orientation.
+    # Adapted from Pillow's implementation of ImageOps.exif_transpose, which is too new
+    # to be in Debian Buster.
+    if hasattr(img, '_getexif'):
+        exif = img._getexif()
+        if exif:
+            orientation = exif.get(0x0112)
+            method = {
+                2: Image.FLIP_LEFT_RIGHT,
+                3: Image.ROTATE_180,
+                4: Image.FLIP_TOP_BOTTOM,
+                5: Image.TRANSPOSE,
+                6: Image.ROTATE_270,
+                7: Image.TRANSVERSE,
+                8: Image.ROTATE_90
+            }.get(orientation)
+            if method is not None:
+                img = img.transpose(method).copy()
+                (x,y) = new_size
+                new_size = (y,x)
+                print(f'transposed {new_size}')
+
     if new_size is not None:
         img = img.resize(new_size, resample=Image.LANCZOS)
         new_size = None
