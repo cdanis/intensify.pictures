@@ -107,6 +107,7 @@ def upload():
         if img.format != 'GIF':
             converted_to_gif_image = os.path.join(tmpdir, 'convertedtoa.gif')
             _convert_to_gif(img, converted_to_gif_image, new_size=new_size)
+            new_size = None
         # Some cases are too complicated to unoptimize in a single gifsicle pass.
         # I don't know why; gifsicle will sometimes log 'warning: GIF too complex to unoptimize'.
         # So let's just always perform the workaround it suggests of a pass with --colors 255.
