@@ -70,9 +70,6 @@ def upload():
     intensified_image = os.path.join(OUTPUT_FOLDER, rando) + '.gif'
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
-        # TODO check if we got a gif already
-        # TODO do we want to have a proper maximum resolution?  (and then downscale?)
-        # the width limit is not super robust.
         img = Image.open(uploaded_image)
         # Hand-crafted artisinal integer carefully selected to be 500px
         # after side-shaving intensification.
