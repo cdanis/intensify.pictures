@@ -107,6 +107,18 @@ def upload():
         if img.format != 'GIF':
             converted_to_gif_image = os.path.join(tmpdir, 'convertedtoa.gif')
             _convert_to_gif(img, converted_to_gif_image, new_size=new_size)
+        # Some cases are too complicated to unoptimize in a single gifsicle pass.
+        # I don't know why; gifsicle will sometimes log 'warning: GIF too complex to unoptimize'.
+        # So let's just always perform the workaround it suggests of a pass with --colors 255.
+        # This seems to just remove frame-local colormaps, which seem to be the thing it can't
+        # optimize.  It does not seem to unconditionally use 255 colors if they are not needed.
+        # The original single unoptimize pass failing was the cause of issue #3.
+        gifsicle_colors = subprocess.Popen(
+            [ '/usr/bin/gifsicle', '--colors', '255',
+              (uploaded_image if converted_to_gif_image is None else converted_to_gif_image),
+            ],
+            stdout=subprocess.PIPE,
+        )
         # Asking gifsicle to explode a single frame image DTRT.
         subprocess.run(
             ['/usr/bin/gifsicle', '--unoptimize', '--explode']
@@ -116,10 +128,10 @@ def upload():
                 else []
             )
             + [
-                (uploaded_image if converted_to_gif_image is None else converted_to_gif_image),
                 '-o',
                 os.path.join(tmpdir, "explo"),
-            ]
+            ],
+            stdin=gifsicle_colors.stdout,
         )
         frames = sorted(glob.glob(os.path.join(tmpdir, "explo.*")))
         subprocess.run(_generate_gifsicle_command(frames, intensified_image))
