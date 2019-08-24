@@ -52,6 +52,27 @@ def _generate_gifsicle_command(input_fnames, output_fname, *, max_offset=10):
         ['-O3', '-o', output_fname],
     )
 
+def _convert_to_gif(img, output, *, new_size=None):
+    transparency_color = None
+    if img.mode == 'RGBA':
+        # Pillow is not as smart as it could be when doing conversions.
+        # On the input of e.g. a transparent PNG, we have to jump through a few hoops
+        # to preserve the transparency in the output gif.
+        alpha = img.split()[3]
+        # Reserve the 256th color for the GIF's transparency pseudocolor.
+        img = img.convert('P', palette=Image.ADAPTIVE, colors=255)
+        # We need to quantize the transparency somehow...
+        mask = Image.eval(alpha, lambda a: 255 if a <= 128 else 0)
+        img.paste(255, mask)
+        transparency_color = 255
+    if new_size is not None:
+        img = img.resize(new_size, resample=Image.LANCZOS)
+        new_size = None
+    if transparency_color is None:
+        img.save(output)
+    else:
+        img.save(output, transparency=transparency_color)
+
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -84,26 +105,8 @@ def upload():
         # through a bunch of metadata from img.info into img.save().
         converted_to_gif_image = None
         if img.format != 'GIF':
-            transparency_color = None
-            if img.mode == 'RGBA':
-                # Pillow is not as smart as it could be when doing conversions.
-                # On the input of e.g. a transparent PNG, we have to jump through a few hoops
-                # to preserve the transparency in the output gif.
-                alpha = img.split()[3]
-                # Reserve the 256th color for the GIF's transparency pseudocolor.
-                img = img.convert('P', palette=Image.ADAPTIVE, colors=255)
-                # We need to quantize the transparency somehow...
-                mask = Image.eval(alpha, lambda a: 255 if a <= 128 else 0)
-                img.paste(255, mask)
-                transparency_color = 255
             converted_to_gif_image = os.path.join(tmpdir, 'convertedtoa.gif')
-            if new_size is not None:
-                img = img.resize(new_size, resample=Image.LANCZOS)
-                new_size = None
-            if transparency_color is None:
-                img.save(converted_to_gif_image)
-            else:
-                img.save(converted_to_gif_image, transparency=transparency_color)
+            _convert_to_gif(img, converted_to_gif_image, new_size=new_size)
         # Asking gifsicle to explode a single frame image DTRT.
         subprocess.run(
             ['/usr/bin/gifsicle', '--unoptimize', '--explode']
