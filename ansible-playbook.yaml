@@ -15,6 +15,7 @@
         - zsh
         - unattended-upgrades
         - git
+        - rsync
 #  - name: enable systemd persistent journal
 #    file: path=/var/log/journal state=directory
 
@@ -24,6 +25,26 @@
       name: intensify
       password: '!'
       shell: /usr/bin/zsh
+  - name: ensure bin directory
+    file:
+      path: /home/intensify/bin
+      state: directory
+      mode: 0555
+  - name: ensure rrsync
+    copy:
+      dest: /home/intensify/bin/rrsync
+      mode: 0555
+      content: |
+        #!/bin/sh
+        /usr/bin/perl /usr/share/doc/rsync/scripts/rrsync "$@"
+  - name: ensure ssh key
+    authorized_key:
+      user: intensify
+      key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAGcJ8aHNnqdnIlJb4zdTe3HB4Z8utxirrkZrl3BdCFY intensify@thebunk
+      state: present
+      exclusive: True
+      manage_dir: True
+      key_options: restrict,command="/home/intensify/bin/rrsync -ro /home/intensify/intensify.pictures"
   - name: ensure clone
     git:
       dest: /home/intensify/intensify.pictures
