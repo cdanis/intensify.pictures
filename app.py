@@ -83,9 +83,9 @@ def _convert_to_gif(img, output, *, new_size=None):
             }.get(orientation)
             if method is not None:
                 img = img.transpose(method)
-                (x,y) = new_size
-                new_size = (y,x)
-                print(f'transposed {new_size}')
+                if new_size is not None:
+                    (x,y) = new_size
+                    new_size = (y,x)
 
     if new_size is not None:
         img = img.resize(new_size, resample=Image.LANCZOS)
