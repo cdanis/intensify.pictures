@@ -115,7 +115,6 @@ def upload():
     intensified_image = os.path.join(OUTPUT_FOLDER, rando) + '.gif'
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
-        tmpdir = "tmp"
         img = Image.open(uploaded_image)
         # Hand-crafted artisinal integer carefully selected to be 500px
         # after side-shaving intensification.
