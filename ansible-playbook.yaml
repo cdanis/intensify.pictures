@@ -28,12 +28,13 @@
     git:
       dest: /home/intensify/intensify.pictures
       repo: https://github.com/cdanis/intensify.pictures.git
+      update: no  # just ensure it exists
   - name: create tmpfiles.d snippet
     copy:
       dest: /etc/tmpfiles.d/intensify.conf
       mode: 0644
       content: 'd	/run/intensify	0755	intensify	intensify	-'
-  - name: update tmpfiles
+  - name: update tmpfiles  # todo: make this a handler
     command: systemd-tmpfiles --create /etc/tmpfiles.d/intensify.conf
   - name: create socket systemd unit
     copy:
@@ -135,8 +136,10 @@
       state: link
       path: /etc/nginx/sites-enabled/intensify
       src: ../sites-available/intensify
-# TODO reload nginx
-
+  - name: reload nginx systemd service  # todo: handler.
+    systemd:
+      name: nginx.service
+      state: reloaded
 
 # TODO I think we temporarily set up acme.sh, and then post-migration, think about moving to certbot and encoding its config here...?
 # that lets us get away from worrying about DNS challenge + keeping API keys on an untrusted host
