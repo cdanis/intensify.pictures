@@ -52,6 +52,7 @@ def _generate_gifsicle_command(input_fnames, output_fname, *, max_offset=10):
         ['-O3', '-o', output_fname],
     )
 
+
 def _convert_to_gif(img, output, *, new_size=None):
     transparency_color = None
     if img.mode == 'RGBA':
@@ -85,8 +86,8 @@ def _convert_to_gif(img, output, *, new_size=None):
                 old_img = img
                 img = img.transpose(method)
                 if new_size is not None and old_img.size != img.size:
-                    (x,y) = new_size
-                    new_size = (y,x)
+                    (x, y) = new_size
+                    new_size = (y, x)
 
     if new_size is not None:
         img = img.resize(new_size, resample=Image.LANCZOS)
@@ -114,6 +115,7 @@ def upload():
     intensified_image = os.path.join(OUTPUT_FOLDER, rando) + '.gif'
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
+        tmpdir = "tmp"
         img = Image.open(uploaded_image)
         # Hand-crafted artisinal integer carefully selected to be 500px
         # after side-shaving intensification.
@@ -138,8 +140,9 @@ def upload():
         # optimize.  It does not seem to unconditionally use 255 colors if they are not needed.
         # The original single unoptimize pass failing was the cause of issue #3.
         gifsicle_colors = subprocess.Popen(
-            [ '/usr/bin/gifsicle', '--colors', '255',
-              (uploaded_image if converted_to_gif_image is None else converted_to_gif_image),
+            [
+                '/usr/bin/gifsicle', '--colors', '255',
+                (uploaded_image if converted_to_gif_image is None else converted_to_gif_image),
             ],
             stdout=subprocess.PIPE,
         )
