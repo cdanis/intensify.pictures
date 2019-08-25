@@ -82,7 +82,7 @@ def _convert_to_gif(img, output, *, new_size=None):
                 8: Image.ROTATE_90
             }.get(orientation)
             if method is not None:
-                img = img.transpose(method).copy()
+                img = img.transpose(method)
                 (x,y) = new_size
                 new_size = (y,x)
                 print(f'transposed {new_size}')
