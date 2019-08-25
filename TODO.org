@@ -1,0 +1,7 @@
+* Test cases to gather/produce:
+** JPGs exercising orientation code.
+*** Cross-product of (EXIF orientation, resize/no-resize)
+** Transparent and opaque PNGs, cross product resize/no-resize
+** Cross product: GIFs: still/animated, resize/no-resize, transparent/not-transparent
+** Tickle some workarounds: un-unoptimizable GIF.
+** A pathologically large image?
