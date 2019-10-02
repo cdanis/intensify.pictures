@@ -116,7 +116,7 @@ def upload():
     file.save(uploaded_image)
     with tempfile.TemporaryDirectory(prefix="intens") as tmpdir:
         img = Image.open(uploaded_image)
-        # Hand-crafted artisinal integer carefully selected to be 500px
+        # Hand-crafted artisanal integer carefully selected to be 500px
         # after side-shaving intensification.
         MAX_DIMENSION = 510
         new_size = None
