@@ -16,6 +16,8 @@
         - unattended-upgrades
         - git
         - rsync
+        - certbot
+        - python3-certbot-nginx
 #  - name: enable systemd persistent journal
 #    file: path=/var/log/journal state=directory
 
@@ -96,16 +98,6 @@
       daemon_reload: yes
       enabled: yes
       state: started
-  - name: ensure certs directories
-    file:
-      path: /etc/certs
-      state: directory
-      mode: 0700
-  - name: ensure certs directories
-    file:
-      path: /etc/certs/intensify.pictures
-      state: directory
-      mode: 0700
   - name: nginx SSL params snippet
     copy:
       dest: /etc/nginx/snippets/ssl.conf
@@ -138,8 +130,8 @@
           listen 443 ssl;
           listen [::]:443 ssl;
           server_name intensify.pictures www.intensify.pictures;
-          ssl_certificate /etc/certs/intensify.pictures/fullchain.pem;
-          ssl_certificate_key /etc/certs/intensify.pictures/privkey.pem;
+          ssl_certificate /etc/letsencrypt/live/intensify.pictures/fullchain.pem; # managed by Certbot
+          ssl_certificate_key /etc/letsencrypt/live/intensify.pictures/privkey.pem; # managed by Certbot
           include snippets/ssl.conf;
           access_log /var/log/nginx/intensify.access.log;
           error_log /var/log/nginx/intensify.error.log;
@@ -162,5 +154,3 @@
       name: nginx.service
       state: reloaded
 
-# TODO I think we temporarily set up acme.sh, and then post-migration, think about moving to certbot and encoding its config here...?
-# that lets us get away from worrying about DNS challenge + keeping API keys on an untrusted host
